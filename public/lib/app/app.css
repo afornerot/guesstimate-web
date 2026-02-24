@@ -1,0 +1,130 @@
+html,
+body {
+    height: 100%
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.avatar {
+    border-radius: 100%;
+    width: 35px;
+    height: 35px;
+}
+
+.bigavatar {
+    border-radius: 100%;
+    width: 100px;
+    height: 100px;
+}
+
+.navbar-brand img {
+    width: 40px;
+    margin-right: 10px;
+}
+
+.navbar-toggler {
+    border: none;
+    box-shadow: none !important;
+}
+
+main {
+    display: flex;
+    flex-grow: 1;
+    align-items: stretch;
+}
+
+sidebar {
+    width: 300px;
+    padding: 15px;
+    background-color: rgba(var(--bs-dark-rgb));
+    display: flex;
+    flex-direction: column;
+}
+
+sidebar div {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--bs-body-color);
+    padding-bottom: 10px;
+}
+
+sidebar a {
+    text-decoration: none;
+    color: var(--bs-body-color);
+    ;
+    opacity: 0.6;
+    margin: 5px 0px;
+}
+
+sidebar a:hover {
+    text-decoration: none;
+    opacity: 1;
+}
+
+content {
+    flex-grow: 1;
+    align-items: stretch;
+    padding: 15px;
+}
+
+@media (max-width: 991px) {
+    sidebar {
+        width: 70px;
+    }
+
+    sidebar i {
+        font-size: 200%;
+    }
+
+    sidebar span {
+        display: none;
+    }
+}
+
+.select2-container--bootstrap-5 .select2-selection {
+    padding: 2px 2px 0px 2px;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered .select2-selection__choice {
+    padding: 2px;
+}
+
+.select2-container:not(.select2-container--open) .select2-search {
+    display: none;
+}
+
+.select2-container .select2-search__field {
+    width: 100% !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered .select2-selection__choice {
+    margin-bottom: 2px;
+    margin-right: 2px;
+    padding: 3px;
+}
+
+.align-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    /* Espace entre label et input */
+}
+
+.align-horizontal label {
+    margin-bottom: 0;
+    white-space: nowrap;
+    width: 40%;
+}
+
+.zoom-80 {
+    zoom: 80%;
+}
+
+
+small {
+    font-size: 80%;
+}

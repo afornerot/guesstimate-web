@@ -1,0 +1,10 @@
+<div class="d-flex align-items-center">
+    {% set rparams = (route_params is defined) ? route_params : {} %}
+    <select onchange="if (this.value) window.location.href=this.value" class="form-select form-select-sm">
+        {% for year in years %}
+            <option value="{{ path(route, {'id': year.id}) }}"{% if year.id == current_year_id %} selected{% endif %}>
+                Année {{ year.startmonth|slice(0, 4) }}
+            </option>
+        {% endfor %}
+    </select>
+</div>

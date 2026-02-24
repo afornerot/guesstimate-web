@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %} = {{title}}{% endblock %}
+
+{% block body %}
+    <h1>{{title}}</h1>
+    
+
+    {{ form_start(form) }}
+       
+        {{ form_widget(form.submit) }}
+        <a href="{{ path(routecancel) }}" class="btn btn-secondary ms-1">Annuler</a>
+        {%if mode=="update" %}<a href="{{ path(routedelete,{id:form.vars.value.id}) }}" class="btn btn-danger float-end" onclick="return confirm('Confirmez-vous la suppression de cet enregistrement ?')">Supprimer</a>{%endif%}
+
+        {% include('include/error.html.twig') %}
+
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <div class="card mt-3">
+                    <div class="card-header">Information</div>
+                    <div class="card-body">
+                        {{ form_row(form.title) }}
+                        {{ form_row(form.users) }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mx-auto">
+                <div class="card mt-3">
+                    <div class="card-header">Catégories</div>
+                    <div class="card-body">
+                        <button type="button" class="btn btn-success btn-sm add-category mb-3">Ajouter</button>
+                        <div id="categorys-collection" data-index="{{ form.categorys|length }}" data-prototype="{{ form_widget(form.categorys.vars.prototype)|e('html_attr') }}">
+                            {% for category in form.categorys %}
+                                <div class="card mb-2 category-item">
+                                    <div class="card-body">
+                                        {{ form_widget(category) }}
+                                        <button type="button" class="btn btn-danger btn-sm mt-2 remove-category">Supprimer</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>  
+        </div>
+    {{ form_end(form) }}
+
+{% endblock %}
+
+{% block localscript %}
+    <script>
+        $(document).ready(function() {
+            $("form input:not([type='hidden']):not([type='submit']):not(:disabled), form select:not(:disabled), form textarea:not(:disabled)").first().focus();
+
+            let collection = $('#categorys-collection');
+
+            $('.add-category').on('click', function() {
+                let index = collection.data('index');
+                let prototype = collection.data('prototype');
+                let newForm = prototype.replace(/__name__/g, index);
+                collection.data('index', index + 1);
+
+                let item = $('<div class="card mb-2 category-item"><div class="card-body">' + newForm + '<button type="button" class="btn btn-danger btn-sm mt-2 remove-category">Supprimer</button></div></div>');
+                collection.append(item);
+            });
+
+            collection.on('click', '.remove-category', function() {
+                $(this).closest('.category-item').remove();
+            });
+        });
+    </script>
+{% endblock %}

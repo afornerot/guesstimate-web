@@ -1,0 +1,41 @@
+services:
+  mariadb:
+    image: mariadb
+    container_name: guesstimate-mariadb
+    restart: unless-stopped  
+    environment:
+      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_DATABASE: guesstimate
+      MYSQL_USER: user
+      MYSQL_PASSWORD: changeme
+    volumes:
+      - ./volume/mariadb:/var/lib/mysql
+
+  guesstimate:
+    build:
+      context: .
+      dockerfile: ./misc/docker/Dockerfile
+    container_name: guesstimate
+    restart: unless-stopped  
+    image: reg.cadoles.com/envole/guesstimate
+    depends_on: 
+      - mariadb
+    ports:
+      - "8011:80"
+    volumes:
+      - ./src:/app/src:delegated
+      - ./templates:/app/templates:delegated
+      - ./config:/app/config:delegated
+      - ./public/uploads:/app/public/uploads:delegated
+      - ./uploads:/app/uploads:delegated
+      - ./misc:/app/misc:delegated
+      - ./public/lib:/app/public/lib:delegated
+      - ./public/medias:/app/public/medias:delegated
+      - ./.env.local:/app/.env.local
+
+  adminer:
+    image: adminer
+    container_name: guesstimate-adminer
+    restart: always
+    ports:
+      - 6011:8080

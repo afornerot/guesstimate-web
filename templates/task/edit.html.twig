@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %} = {{title}}{% endblock %}
+
+{% block body %}
+    <h1>{{title}}</h1>
+    
+
+    {{ form_start(form) }}
+       
+        {{ form_widget(form.submit) }}
+        <a href="{{ path(routecancel,{id:task.project.id}) }}" class="btn btn-secondary ms-1">Annuler</a>
+        {%if mode=="update" %}<a href="{{ path(routedelete,{idProject:task.project.id,id:form.vars.value.id}) }}" class="btn btn-danger float-end" onclick="return confirm('Confirmez-vous la suppression de cet enregistrement ?')">Supprimer</a>{%endif%}
+
+        {% include('include/error.html.twig') %}
+
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <div class="card mt-3">
+                    <div class="card-header">Information</div>
+                    <div class="card-body">
+                        {{ form_row(form.label) }}
+                        {{ form_row(form.category) }}
+                        {{ form_row(form.optimistic) }}
+                        {{ form_row(form.likely) }}
+                        {{ form_row(form.pessimistic) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {{ form_end(form) }}
+
+{% endblock %}
+
+{% block localscript %}
+    <script>
+        $(document).ready(function() {
+            $("form input:not([type='hidden']):not([type='submit']):not(:disabled), form select:not(:disabled), form textarea:not(:disabled)").first().focus();
+        });
+    </script>
+{% endblock %}

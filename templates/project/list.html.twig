@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %} = {{title}}{% endblock %}
+
+{% block body %}
+    <h1>{{title}}</h1>
+    <div class="card">
+        <div class="card-header">
+            <a href="{{ path(routesubmit) }}" class="btn btn-success">Ajouter</a>
+        </div>
+        <div class="card-body">
+            <table id="dataTables" class="table table-striped table-bordered table-hover" style="width:100%">
+                <thead>
+                <tr>
+                    <th width="70px" class="no-sort">Action</th>
+                    <th>Client</th>
+                    <th>Titre</th>
+                    <th width="200px">Min</th>
+                    <th width="200px">Max</th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                        <tr>
+                            <td class="text-center"><a href="{{ path(routeupdate,{id:project.project.id}) }}"><i class="fas fa-file fa-2x"></i></a></td>
+                            <td>{{project.project.customer.title}}</td>
+                            <td>{{project.project.title}}</td>
+                            <td>{{project.guesstimate.costs.min.cost|number_format(2, ',', ' ')}} {{project.guesstimate.costs.currency}}</td>
+                            <td>{{project.guesstimate.costs.max.cost|number_format(2, ',', ' ')}} {{project.guesstimate.costs.currency}}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block localscript %}
+    <script>
+        $(document).ready(function() {
+            $('#dataTables').DataTable({
+                columnDefs: [ { "targets": "no-sort", "orderable": false }, { "targets": "no-string", "type" : "num" } ],
+                responsive: true,
+                iDisplayLength: 100,
+                order: [[ 1, "asc" ]]
+            });
+        });
+    </script>
+{% endblock %}

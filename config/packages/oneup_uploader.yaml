@@ -1,0 +1,6 @@
+oneup_uploader:
+    mappings:
+        avatar:
+            frontend: dropzone
+        logo:
+            frontend: dropzone            

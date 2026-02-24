@@ -1,0 +1,543 @@
+{% extends 'base.html.twig' %}
+
+{% macro render_table(title, year, tableId, items, entityKey) %}
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">{{ title }}</h4>
+            <div>
+                <table id="{{ tableId }}" class="dataTables table table-striped table-bordered table-hover">
+                    <thead>
+                    <tr>
+                        <th rowspan="2">Nom</th>
+                        <th colspan="4">CA Réalisé</th>
+                        <th colspan="4">CA Possible</th>
+                    </tr>
+
+                    <tr>
+                        <th width="150px">Facturé</th>
+                        <th width="150px">PCA</th>
+                        <th width="150px">Commandé<br>Réalisé au {{year.currentmonth}}</th>
+                        <th width="150px">CA<br>Réalisé au {{year.currentmonth}}</th>
+                        <th width="150px">Commandé<br>Non réalisé au {{year.currentmonth}}</th>
+                        <th width="150px">Devis<br>Probable</th>
+                        <th width="150px">PCA</th>
+                        <th width="150px">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in items %}
+                        {% set entity = attribute(item, entityKey) %}
+                        <tr>
+                            <td>
+                                <div class="btn-collapse d-flex justify-content-between align-items-center"
+                                    style="cursor: pointer;"
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#{{ entityKey }}-{{ entity.id }}"
+                                    aria-expanded="false">
+                                    {{ entity.title }}
+                                </div>      
+                                <div id="{{ entityKey }}-{{ entity.id }}" class="collapse">                              
+                                    {% set total=0 %}
+                                    {% for folderDetail in item.folders %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                {{folderDetail.folder.title}} =
+                                                <br> PCA = {{folderDetail.folder.isPCA?"oui":"non"}}
+                                            </div>
+                                            {{folderDetail.total|number_format(2, ',', ' ')}}
+                                            {% set total=total+folderDetail.total %}
+                                        </div>
+                                    {% endfor %}
+                                    <div>TOTAL = {{total|number_format(2, ',', ' ')}}</div>
+                                </div>
+                            </td>
+                            <td>{{ item.totalBill|number_format(2, ',', ' ') }}</td>
+                            <td>{{ (item.totalPCA*-1)|number_format(2, ',', ' ') }}</td>
+                            <td>{{ item.totalOrderDo|number_format(2, ',', ' ') }}</td>
+                            <td>{{ (item.totalBill-item.totalPCA+item.totalOrderDo)|number_format(2, ',', ' ') }}</td>
+                            <td>{{ (item.totalOrder-item.totalOrderDo)|number_format(2, ',', ' ') }}</td>
+                            <td>{{ item.totalPropalProbability|number_format(2, ',', ' ') }}</td>
+                            <td>{{ item.totalPCA|number_format(2, ',', ' ') }}</td>
+                            <td>{{ item.totalProbability|number_format(2, ',', ' ') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{% import _self as macros %}
+
+{% block localstyle %}
+<style>
+    .big {
+        zoom: 150%;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+    {% set total=0 %}
+    {% set totalBill=0 %}
+    {% set totalPCA=0 %}
+    {% set totalOrderDo=0 %}
+    {% set totalOrder=0 %}
+    {% set totalPropalProbability=0 %}
+    {% set totalPCA=0 %}
+    {% set totalProbability=0 %}
+
+
+    {% for item in folderCustomers %}
+            {% set total=total+item.total %}
+            {% set totalBill=totalBill+item.totalBill %}
+            {% set totalPCA=totalPCA+item.totalPCA %}
+            {% set totalOrderDo=totalOrderDo+item.totalOrderDo %}
+            {% set totalOrder=totalOrder+item.totalOrder %}
+            {% set totalPropalProbability=totalPropalProbability+item.totalPropalProbability %}
+            {% set totalProbability=totalProbability+item.totalProbability %}    
+    {% endfor %}
+
+    <div class="d-flex align-items-top gap-3 mb-3">
+        <div class="card" style="width: 33.3333%">
+            <div class="card-header big d-flex justify-content-between align-items-center">
+                <div>
+                    💰 = CA Réalisé au {{year.currentmonth}}
+                </div>
+                <div>
+                    {{ (totalBill-totalPCA+totalOrderDo)|number_format(2, ',', ' ') }}
+                </div>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>Facturé</div>
+                    <div>{{totalBill|number_format(2, ',', ' ')}}</div>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>Commandé Réalisé</div>
+                    <div>{{totalOrderDo|number_format(2, ',', ' ')}}</div>
+                </li>
+
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>PCA</div>
+                    <div>{{(totalPCA*-1)|number_format(2, ',', ' ')}}</div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card" style="width: 33.3333%">
+            <div class="card-header big d-flex justify-content-between align-items-center">
+                <div>
+                    ⏳ = CA Encore Réalisable
+                </div>
+                <div>
+                    {{ (totalPropalProbability+totalPCA+totalOrder-totalOrderDo)|number_format(2, ',', ' ') }}
+                </div>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>Devis Probable</div>
+                    <div>{{totalPropalProbability|number_format(2, ',', ' ')}}</div>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>Commande non Réalisé</div>
+                    <div>{{(totalOrder-totalOrderDo)|number_format(2, ',', ' ')}}</div>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>PCA</div>
+                    <div>{{totalPCA|number_format(2, ',', ' ')}}</div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card" style="width: 33.3333%">
+            <div class="card-header big d-flex justify-content-between align-items-center">
+                <div>
+                    🔭 = CA Potentiel
+                </div>
+                <div>
+                    {% set CAPotentiel= totalBill+totalOrder+totalPropalProbability %}
+                    {{ CAPotentiel|number_format(2, ',', ' ') }}
+                </div>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>CA Réalisé au {{year.currentmonth}}</div>
+                    <div>{{(totalBill-totalPCA+totalOrderDo)|number_format(2, ',', ' ')}}</div>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>CA Réalisable sur le reste de l'exercice</div>
+                    <div>{{(totalPropalProbability+totalPCA+totalOrder-totalOrderDo)|number_format(2, ',', ' ')}}</div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header big d-flex justify-content-between align-items-center">
+            <div>
+                ⚖️ = CA Equilibre
+            </div>
+            <div class="d-flex flex-column justify-content-end align-items-end">
+                {{ (year.balance+year.costProbability)|number_format(2, ',', ' ') }}
+                <verysmall>fixe={{ year.balance|number_format(2, ',', ' ') }}</verysmall>
+                <verysmall>variable={{ year.costProbability|number_format(2, ',', ' ') }}</verysmall>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header {{(CAPotentiel-year.balance-year.costProbability)<0?'bg-danger' }} big d-flex justify-content-between align-items-center">
+            <div>
+                🎯 = Résultat Potentiel
+            </div>
+            <div>
+                {{ (CAPotentiel-year.balance-year.costProbability)|number_format(2, ',', ' ') }}
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-top gap-3 mb-3" style="break-after: page;">
+        <div class="card" style="width: 33.3333%;">
+            <div class="card-header big d-flex justify-content-between align-items-center">
+                <div>
+                    RAF Facture N-1
+                </div>
+            </div>
+            
+            <ul class="list-group list-group-flush">
+                {% for item in folderServices %}
+                    {% for folderDetail in item.folders %}
+                        {% if folderDetail.folder.status.id=="001" %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">       
+                                <div>
+                                    <small>{{folderDetail.folder.billId}}</small><br>
+                                    {{folderDetail.folder.customer.title}}-{{folderDetail.folder.title}}-{{folderDetail.title}}
+                                </div>
+                                <div>
+                                    {{(folderDetail.RAFCurrentMonth*folderDetail.unitPrice)|number_format(2, ',', ' ')}}
+                                </div>
+                            </li>
+                        {%endif%}
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card" style="width: 33.3333%;">
+            <div class="card-header big d-flex justify-content-between align-items-center">
+                <div>
+                    Commande non Réalisée
+                </div>
+            </div>
+            
+            <ul class="list-group list-group-flush">
+                {% for item in folderServices %}
+                    {% for folderDetail in item.folders %}
+                        {% if folderDetail.folder.status.id=="003" %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">       
+                                <div>
+                                    <small>{{folderDetail.folder.orderId}}</small><br>
+                                    {{folderDetail.folder.customer.title}}-{{folderDetail.folder.title}}-{{folderDetail.title}}
+                                </div>
+                                <div>
+                                    {{(folderDetail.RAFCurrentMonth*folderDetail.unitPrice)|number_format(2, ',', ' ')}}
+                                </div>
+                            </li>
+                        {%endif%}
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card" style="width: 33.3333%;">
+            <div class="card-header big d-flex justify-content-between align-items-center">
+                <div>
+                    PCA
+                </div>
+            </div>
+            
+            <ul class="list-group list-group-flush">
+                {% for item in folderServices %}
+                    {% for folderDetail in item.folders %}
+                        {% if folderDetail.folder.isPCA %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">       
+                                <div>
+                                    <small>{{folderDetail.folder.billId}}</small><br>
+                                    {{folderDetail.folder.customer.title}}-{{folderDetail.folder.title}}-{{folderDetail.title}}
+                                </div>
+                                <div>
+                                    {{(folderDetail.RAFCurrentMonth*folderDetail.unitPrice)|number_format(2, ',', ' ')}}
+                                </div>
+                            </li>
+                        {%endif%}
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-top gap-3 mb-3">
+        <div class="card h-100" style="width: 25%;">
+            <div class="card-body">
+                <h4 class="card-title">CA Réalisé par Client</h4>
+                <canvas id="customersChart"></canvas>
+            </div>
+        </div>
+        <div class="card h-100" style="width: 25%;">
+            <div class="card-body">
+                <h4 class="card-title">CA Potentiel par Client</h4>
+                <canvas id="customersPotentialChart"></canvas>
+            </div>
+        </div>
+        <div class="card h-100" style="width: 25%;">
+            <div class="card-body">
+                <h4 class="card-title">CA Réalisé par Service</h4>
+                <canvas id="servicesChart"></canvas>
+            </div>
+        </div>
+        <div class="card h-100" style="width: 25%;">
+            <div class="card-body">
+                <h4 class="card-title">CA Potentiel par Service</h4>
+                <canvas id="servicesPotentialChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3" style="break-after: page;">
+        <div class="card-body">
+            <h4 class="card-title">Avancement CA à Date par Service (%)</h4>
+            <canvas id="CAChart" style="max-height: 400px;"></canvas>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            {{ macros.render_table('Services', year, 'datatable-services', folderServices, 'service') }}
+        </div>
+    </div>
+
+    <div class="row mb-3" style="break-after: page;">
+        <div class="col-12">
+            {{ macros.render_table('Clients', year, 'datatable-customers', folderCustomers, 'customer') }}
+        </div>
+    </div>
+
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">CA Réalisé par Service</h4>
+                    <div>
+                        <table id="datatable-CA" class="dataTables table table-striped table-bordered table-hover">
+                            <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th width="200px">CA Réalisé</th>
+                                <th width="200px">CA Annuel Prévu</th>
+                                <th width="200px">% Annuel</th>
+                                <th width="200px">CA Prévu à Date</th>
+                                <th width="200px">% à Date</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for CA in year.CAs %}
+                                <tr>
+                                    {% set totalService=0 %}
+
+                                    <td>{{ CA.service.title }}</td>
+                                    <td>
+                                        {% for item in folderServices %}
+                                            {% if item.service.id==CA.service.id %}
+                                                {% set totalService=item.totalBill-item.totalPCA+item.totalOrderDo %}
+                                                {{totalService|number_format(2, ',', ' ')}}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>{{CA.total|number_format(2, ',', ' ')}}</td>
+                                    <td>{{(totalService*100/CA.total)|number_format(0, ',', ' ')}}%</td>
+                                    <td>{{CA.totalPercentage|number_format(2, ',', ' ')}}</td>
+                                    <td>{{(totalService*100/CA.totalPercentage)|number_format(0, ',', ' ')}}%</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block localscript %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.dataTables').DataTable({
+                columnDefs: [ { "targets": "no-sort", "orderable": false }, { "targets": "no-string", "type" : "num" } ],
+                responsive: true,
+                iDisplayLength: 100,
+                order: [[ 0, "asc" ]]
+            });
+
+            const ctx = document.getElementById('servicesChart');
+            const ctxPotential = document.getElementById('servicesPotentialChart');
+            const serviceLabels = [];
+            const serviceData = [];
+            const servicePotentialData = [];
+
+            {% for item in folderServices %}
+                serviceLabels.push("{{ item.service.title|e('js') }}");
+                serviceData.push({{ item.totalBill - item.totalPCA + item.totalOrderDo }});
+                servicePotentialData.push({{ item.totalProbability }});
+            {% endfor %}
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: serviceLabels,
+                    datasets: [{
+                        label: 'CA Réalisé',
+                        data: serviceData,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+
+            new Chart(ctxPotential, {
+                type: 'pie',
+                data: {
+                    labels: serviceLabels,
+                    datasets: [{
+                        label: 'CA Potentiel',
+                        data: servicePotentialData,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+
+            const ctxCust = document.getElementById('customersChart');
+            const ctxCustPotential = document.getElementById('customersPotentialChart');
+            const customerLabels = [];
+            const customerData = [];
+            const customerPotentialData = [];
+
+            {% for item in folderCustomers %}
+                customerLabels.push("{{ item.customer.title|e('js') }}");
+                customerData.push({{ item.totalBill - item.totalPCA + item.totalOrderDo }});
+                customerPotentialData.push({{ item.totalProbability }});
+            {% endfor %}
+
+            new Chart(ctxCust, {
+                type: 'pie',
+                data: {
+                    labels: customerLabels,
+                    datasets: [{
+                        label: 'CA Réalisé',
+                        data: customerData,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+
+            new Chart(ctxCustPotential, {
+                type: 'pie',
+                data: {
+                    labels: customerLabels,
+                    datasets: [{
+                        label: 'CA Potentiel',
+                        data: customerPotentialData,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+
+            const ctxBudget = document.getElementById('CAChart');
+            const CALabels = [];
+            const CAData = [];
+
+            {% for CA in year.CAs %}
+                CALabels.push("{{ CA.service.title|e('js') }}");
+                {% set totalService=0 %}
+                {% for item in folderServices %}
+                    {% if item.service.id==CA.service.id %}
+                        {% set totalService=item.totalBill-item.totalPCA+item.totalOrderDo %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if CA.totalPercentage > 0 %}
+                    CAData.push({{ (totalService * 100 / CA.totalPercentage)|number_format(2, '.', '') }});
+                {% else %}
+                    CAData.push(0);
+                {% endif %}
+            {% endfor %}
+
+            new Chart(ctxBudget, {
+                type: 'bar',
+                data: {
+                    labels: CALabels,
+                    datasets: [{
+                        label: '% Avancement',
+                        data: CAData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '%'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}
