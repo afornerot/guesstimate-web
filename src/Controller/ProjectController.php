@@ -8,6 +8,7 @@ use App\Repository\ProjectRepository;
 use App\Service\GuesstimateService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -132,6 +133,44 @@ class ProjectController extends AbstractController
         }
 
         return $this->redirectToRoute('app_project');
+    }
+
+    #[Route('/project/{id}/import', name: 'app_project_import', methods: ['POST'])]
+    public function import(int $id, Request $request): Response
+    {
+        $project = $this->projectRepository->find($id);
+        $this->checkPermission($project);
+
+        /** @var UploadedFile|null $yamlFile */
+        $yamlFile = $request->files->get('yaml_file');
+
+        if (!$yamlFile) {
+            $this->addflash('error', 'Aucun fichier sélectionné.');
+
+            return $this->redirectToRoute('app_project_view', ['id' => $id]);
+        }
+
+        if (!in_array($yamlFile->guessExtension(), ['yml', 'yaml'], true) && !str_ends_with($yamlFile->getClientOriginalName(), '.yml') && !str_ends_with($yamlFile->getClientOriginalName(), '.yaml')) {
+            $this->addflash('error', 'Le fichier doit être au format YAML (.yml ou .yaml).');
+
+            return $this->redirectToRoute('app_project_view', ['id' => $id]);
+        }
+
+        $yamlContent = file_get_contents($yamlFile->getPathname());
+        if (false === $yamlContent) {
+            $this->addflash('error', 'Impossible de lire le fichier.');
+
+            return $this->redirectToRoute('app_project_view', ['id' => $id]);
+        }
+
+        try {
+            $this->guesstimateService->importProjectYaml($project, $yamlContent);
+            $this->addflash('success', 'Le fichier YAML a été importé avec succès.');
+        } catch (\Exception $e) {
+            $this->addflash('error', 'Erreur lors de l\'import : '.$e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_project_view', ['id' => $id]);
     }
 
     private function checkPermission(Project $project): void

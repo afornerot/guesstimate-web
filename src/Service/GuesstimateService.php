@@ -10,6 +10,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
+use Symfony\Component\Yaml\Yaml;
 
 class GuesstimateService
 {
@@ -215,6 +216,38 @@ class GuesstimateService
             'task', 'reorder',
             $this->workingDir.'/project/'.$project->getId().'.yml',
         ], $taskIds));
+    }
+
+    public function importProjectYaml(Project $project, string $yamlContent): void
+    {
+        $data = Yaml::parse($yamlContent);
+        if (!is_array($data) || !isset($data['tasks'])) {
+            throw new \InvalidArgumentException('Le fichier YAML ne contient pas de données de projet valides (clé "tasks" manquante).');
+        }
+
+        $this->ensureCategoriesExist($project->getCustomer(), $data['tasks']);
+
+        $filesystem = new Filesystem();
+        $projectFile = $this->workingDir.'/project/'.$project->getId().'.yml';
+        $filesystem->dumpFile($projectFile, $yamlContent);
+    }
+
+    public function ensureCategoriesExist(Customer $customer, array $yamlTasks): void
+    {
+        $config = $this->getConfig($customer);
+        $existingCategoryIds = array_keys($config['TaskCategories'] ?? []);
+
+        $yamlCategoryIds = array_unique(array_column($yamlTasks, 'category'));
+
+        foreach ($yamlCategoryIds as $categoryId) {
+            if (!in_array($categoryId, $existingCategoryIds)) {
+                $category = new Category();
+                $category->setId($categoryId);
+                $category->setLabel(ucfirst(str_replace('-', ' ', $categoryId)));
+                $category->setCostPerTimeUnit(500);
+                $this->addCategory($customer, $category);
+            }
+        }
     }
 
     private function execute(array $args): string
