@@ -218,6 +218,15 @@ class GuesstimateService
         ], $taskIds));
     }
 
+    public function deleteProjectYaml(Project $project): void
+    {
+        $filesystem = new Filesystem();
+        $projectFile = $this->workingDir.'/project/'.$project->getId().'.yml';
+        if ($filesystem->exists($projectFile)) {
+            $filesystem->remove($projectFile);
+        }
+    }
+
     public function importProjectYaml(Project $project, string $yamlContent): void
     {
         $data = Yaml::parse($yamlContent);

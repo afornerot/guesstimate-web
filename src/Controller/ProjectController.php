@@ -124,6 +124,7 @@ class ProjectController extends AbstractController
         }
 
         try {
+            $this->guesstimateService->deleteProjectYaml($project);
             $this->em->remove($project);
             $this->em->flush();
         } catch (\Exception $e) {
