@@ -3,8 +3,8 @@
 namespace App\Security;
 
 use App\Repository\UserRepository;
-use Jumbojett\OpenIDConnectClient;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -21,17 +21,28 @@ class DynamicAuthenticator extends AbstractAuthenticator
     private UserRepository $userRepository;
     private CasUserProvider $casUserProvider;
     private ParameterBagInterface $parameterBag;
+    private OidcClient $oidcClient;
 
-    public function __construct(string $modeAuth, UserRepository $userRepository, CasUserProvider $casUserProvider, ParameterBagInterface $parameterBag)
+    public function __construct(string $modeAuth, UserRepository $userRepository, CasUserProvider $casUserProvider, ParameterBagInterface $parameterBag, OidcClient $oidcClient)
     {
         $this->modeAuth = $modeAuth;
         $this->userRepository = $userRepository;
         $this->casUserProvider = $casUserProvider;
         $this->parameterBag = $parameterBag;
+        $this->oidcClient = $oidcClient;
     }
 
     public function supports(Request $request): ?bool
     {
+        // Retour du fournisseur OIDC : le code doit être échangé quelle que
+        // soit l'URI de redirection déclarée, y compris /login.
+        if ('OIDC' === $this->modeAuth
+            && $request->query->has('code')
+            && $request->query->has('state')
+            && !$request->getSession()->get('_security_main')) {
+            return true;
+        }
+
         // Vérifie si l'utilisateur est déjà connecté
         if ($request->getSession()->get('_security_main')) {
             return false; // L'utilisateur est déjà authentifié
@@ -70,6 +81,13 @@ class DynamicAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
+        // AuthenticatorInterface::authenticate() ne peut pas renvoyer de
+        // Response : la redirection initiale vers le fournisseur passe par
+        // cette exception.
+        if ($exception instanceof OidcRedirectException) {
+            return new RedirectResponse($exception->getAuthorizationUrl());
+        }
+
         throw $exception;
     }
 
@@ -82,7 +100,6 @@ class DynamicAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Username and password are required.');
         }
 
-        // Charger l'utilisateur via Doctrine
         $user = $this->userRepository->findOneBy(['username' => $username]);
 
         if (!$user) {
@@ -134,39 +151,35 @@ class DynamicAuthenticator extends AbstractAuthenticator
 
     private function authenticateWithOidc(Request $request): Passport
     {
-        $oidc = new OpenIDConnectClient(
-            $this->parameterBag->get('oidcIssuer'),
-            $this->parameterBag->get('oidcClientId'),
-            $this->parameterBag->get('oidcClientSecret')
-        );
+        $session = $request->getSession();
+        $code = $request->query->get('code');
 
-        // L'URI de redirection doit correspondre à celle configurée chez le fournisseur OIDC
-        $oidc->setRedirectURL($this->parameterBag->get('oidcRedirectUri'));
-
-        // Lance le processus d'authentification (redirections, etc.)
-        $oidc->authenticate();
-
-        // Stocke l'id_token pour la déconnexion future
-        $request->getSession()->set('oidc_id_token', $oidc->getIdToken());
-
-        // Récupère les informations de l'utilisateur
-        $userInfo = $oidc->requestUserInfo();
-
-        if (!$userInfo) {
-            throw new AuthenticationException('OIDC authentication failed: could not retrieve user info.');
+        // Pas encore de code : on redirige vers le fournisseur d'identité.
+        if (!\is_string($code) || '' === $code) {
+            throw new OidcRedirectException($this->oidcClient->createAuthorizationUrlSymfonySession($session));
         }
 
-        $usernameAttribute = $this->parameterBag->get('oidcUsernameAttribute');
-        $username = $userInfo->{$usernameAttribute} ?? null;
-        $attributes = (array) $userInfo;
+        $sessionState = $session->get(OidcClient::SESSION_STATE_KEY);
+        $requestState = $request->query->get('state');
 
-        if (!$username) {
+        if (!\is_string($sessionState) || '' === $sessionState
+            || !\is_string($requestState) || !\hash_equals($sessionState, $requestState)) {
+            throw new AuthenticationException('OIDC authentication failed: invalid state.');
+        }
+
+        $session->remove(OidcClient::SESSION_STATE_KEY);
+
+        // Échange le code contre les claims (vérification JWT/JWKS incluse).
+        $attributes = $this->oidcClient->exchangeCode($code);
+
+        $usernameAttribute = $this->parameterBag->get('oidcUsernameAttribute');
+        $username = $attributes[$usernameAttribute] ?? null;
+
+        if (!\is_string($username) || '' === $username) {
             throw new AuthenticationException(sprintf('OIDC authentication failed: "%s" claim is missing or empty.', $usernameAttribute));
         }
 
-        $userBadge = new UserBadge($username, function ($userIdentifier) use ($attributes) {
-            return $this->casUserProvider->loadUserByIdentifierAndOIDCAttributes($userIdentifier, $attributes);
-        });
+        $userBadge = new UserBadge($username, fn ($userIdentifier) => $this->casUserProvider->loadUserByIdentifierAndOIDCAttributes($userIdentifier, $attributes));
 
         return new SelfValidatingPassport($userBadge);
     }

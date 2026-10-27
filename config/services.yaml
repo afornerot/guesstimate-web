@@ -15,6 +15,12 @@ parameters:
   scheduleActivate: "%env(resolve:SCHEDULE_ACTIVATE)%"
   scheduleUrl: "%env(resolve:SCHEDULE_URL)%"
   scheduleSecret: "%env(resolve:SCHEDULE_SECRET)%"
+  oidcIssuer: "%env(resolve:OIDC_ISSUER)%"
+  oidcClientId: "%env(resolve:OIDC_CLIENTID)%"
+  oidcClientSecret: "%env(resolve:OIDC_CLIENTSECRET)%"
+  oidcRedirectUri: "%env(resolve:OIDC_REDIRECTURI)%"
+  oidcMailAttribute: "%env(resolve:OIDC_MAILATTRIBUTE)%"
+  oidcUsernameAttribute: "%env(resolve:OIDC_USERNAMEATTRIBUTE)%"
 
 services:
     _defaults:

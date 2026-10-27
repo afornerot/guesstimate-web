@@ -12,7 +12,7 @@
         "doctrine/doctrine-fixtures-bundle": "^4.3",
         "doctrine/doctrine-migrations-bundle": "^3.7",
         "doctrine/orm": "^3.6",
-        "jumbojett/openid-connect-php": "^1.0",
+        "firebase/php-jwt": "^7.2.1",
         "mashape/unirest-php": "^3.0",
         "oneup/uploader-bundle": "^5.1",
         "phpdocumentor/reflection-docblock": "^6.0",
